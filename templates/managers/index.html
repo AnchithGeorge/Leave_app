@@ -1,0 +1,120 @@
+{% extends "base/base.html" %} {% block container %} {% load static %}
+
+
+{% include 'includes/manager-nav.html' %}
+
+    <section>
+		<section class="wrapper">
+			<div class="grid pt-7 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+				<div class="col-span-1 p-4 bg-gray-100 shadow-xl border border-gray-600 rounded-lg">
+					<h3 class="text-[18px] font-semibold text-center">Managers</h3>
+					<p class="text-[24px] font-semibold text-center">{{m_count}}</p>
+				</div>
+				<div class="col-span-1 p-4 bg-gray-100 shadow-xl border border-gray-600 rounded-lg">
+					<h3 class="text-[18px] font-semibold text-center">Employees</h3>
+					<p class="text-[24px] font-semibold text-center">{{e_count}}</p>
+				</div>
+				<div class="col-span-1 p-4 bg-gray-100 shadow-xl border text-center border-gray-600 rounded-lg">
+					<h3 class="text-[18px] font-semibold text-center">New Leaves</h3>
+					<p class="text-[24px] font-semibold text-center mb-3">{{leave_count}}</p>
+					<a href="{% url 'managers:leavelist' %}" class="py-2 px-4 bg-gray-600 hover:bg-gray-800 text-white rounded-lg">View All</a>
+				</div>
+			</div>
+			<div class="text-center mt-7">
+				<a href="{% url 'managers:update_yearly' %}" class="py-3 px-7 text-[18px] bg-gray-600 hover:bg-gray-800 text-white rounded-lg">Update Yearly Leave</a>
+			</div>
+			<div class="text-center mt-7">
+				<a href="{% url 'managers:update_march' %}" class="py-3 px-7 text-[18px] bg-gray-600 hover:bg-gray-800 text-white rounded-lg">Update March Leave</a>
+			</div>
+			<div class="py-7 flex justify-between items-center">
+				<h1 class="text-[28px]"><span class="text-orange-500">{{m_count}}</span> Managers</h1>
+				<a href="{% url 'managers:manager_add' %}"  class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mx-2 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-transform transform hover:scale-105">Add Manager</a>
+				<a href="{% url 'managers:add_holiday' %}"  class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mx-2 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-transform transform hover:scale-105">Add Holiday</a>
+
+
+			</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for employe in managers %}
+					<div class="bg-white col-span-1 p-6 rounded-lg shadow-md relative cursor-pointer focus:ring transform transition-transform duration-300 hover:scale-110">
+						<div class="absolute top-4 right-4">
+							<i class="fas fa-ellipsis-h text-gray-400"></i>
+						</div>
+				
+						<div class="flex items-center mb-4">
+							<img src="{{employe.image.url}}" alt="Profile Image" class="w-12 h-12 rounded-full">
+							<div class="ml-4">
+								<h2 class="text-lg font-semibold">{{employe.user.first_name}} {{employe.user.last_name}}</h2>
+								<p class="text-gray-600">{{employe.designation}}</p>
+							</div>
+						</div>
+				
+						<div class="text-sm text-gray-500 ">
+							<p><span class="font-semibold">Department:</span> {{employe.department}}</p>
+							<p><span class="font-semibold">Hired Date:</span> {{employe.date_of_joining}}</p>
+					
+							<div class="flex items-center mt-4">
+								<i class="bx bxs-envelope text-gray-400 mr-2"></i>
+								<p>{{employe.user.email}}</p> 
+							</div>
+							<div class="flex items-center mt-2">
+								<i class="bx bxs-phone text-gray-400 mr-2"></i>
+								<p>{{employe.user.phone_number}}</p>
+							</div>
+							<div class="button mt-[25px] mb-[20px]">
+								<a href="{% url 'managers:manager_edit' id=employe.id %}" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded mx-2 focus:outline-none focus:ring-2 focus:ring-yellow-300 transition-transform transform hover:scale-105 mt-[20px]">Edit</a>
+								<a href="{% url 'managers:manager_details' id=employe.id %}" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mx-2 focus:outline-none focus:ring-2 focus:ring-red-300 transition-transform transform hover:scale-105">View</a>
+							</div>
+						</div>
+					</div>
+                {% endfor %}
+			</div>
+		</section>
+	</section>
+
+	<section class="mt-10">
+		<section class="wrapper">
+			<div class="py-7 flex justify-between items-center">
+				<h1 class="text-[28px]"><span class="text-orange-500">{{e_count}}</span> Employees</h1>
+				<a href=" {% url 'managers:add_employe' %}"  class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mx-2 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-transform transform hover:scale-105">Add Employee</a>
+			</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for employe in employes %}
+					<div class="bg-white p-6 col-span-1 rounded-lg shadow-md relative cursor-pointer focus:ring transform transition-transform duration-300 hover:scale-110">
+						<div class="absolute top-4 right-4">
+							<i class="fas fa-ellipsis-h text-gray-400"></i>
+						</div>
+				
+						<div class="flex items-center mb-4">
+							<img src="{{employe.image.url}}" alt="Profile Image" class="w-12 h-12 rounded-full">
+							<div class="ml-4">
+								<h2 class="text-lg font-semibold">{{employe.user.first_name}} {{employe.user.last_name}}</h2>
+								<p class="text-gray-600">{{employe.designation}}</p>
+							</div>
+						</div>
+				
+						<div class="text-sm text-gray-500 ">
+							<p><span class="font-semibold">Department:</span> {{employe.department}}</p>
+							<p><span class="font-semibold">Hired Date:</span> {{employe.date_of_joining}}</p>
+					
+							<div class="flex items-center mt-4">
+								<i class="bx bxs-envelope text-gray-400 mr-2"></i>
+								<p>{{employe.user.email}}</p> 
+							</div>
+							<div class="flex items-center mt-2">
+								<i class="bx bxs-phone text-gray-400 mr-2"></i>
+								<p>{{employe.user.phone_number}}</p>
+							</div>
+							<div class="button mt-[25px] mb-[20px]">
+								<a href="{% url 'managers:edit_employe' id=employe.id %}" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded mx-2 focus:outline-none focus:ring-2 focus:ring-yellow-300 transition-transform transform hover:scale-105 mt-[20px]">Edit</a>
+								<a href="{% url 'managers:details' id=employe.id %}" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mx-2 focus:outline-none focus:ring-2 focus:ring-red-300 transition-transform transform hover:scale-105">View</a>
+							</div>
+						</div>
+					</div>
+                {% endfor %}
+			</div>
+		</section>
+	</section>
+    
+    
+
+	{% endblock %}
