@@ -2,6 +2,10 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 from .manager import UserManager
+from django.core.validators import RegexValidator
+
+from django.utils.timezone import now
+from datetime import timedelta
 
 GENDER_CHOICES = (
     ('M', 'Male'),
@@ -15,21 +19,27 @@ MARITUL_STATUS_CHOICES = (
     ('OT', 'OTHER')
 )
 class User(AbstractUser):
-    username = None
-    email = models.EmailField(max_length=255, unique=True, null=True,blank=True,
-                                    error_messages={'unique': "Email already used"})
-    employe_id= models.CharField(max_length=100, null=True, blank=True)
+    username = None  # Remove the username field
+    email = models.EmailField(max_length=255, unique=True, 
+                              error_messages={'unique': "Email already used"})
+    employe_id = models.CharField(max_length=100, null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
-    gender = models.CharField(max_length=100, choices=GENDER_CHOICES, null=True, blank=True)
-    maritul_status = models.CharField(max_length=200, null=True, blank=True, choices=MARITUL_STATUS_CHOICES)
-    phone_number = models.CharField(max_length=15, null=True, blank=True)
+    gender = models.CharField(max_length=100, choices=GENDER_CHOICES, null=True, blank=True, default='O')
+    maritul_status = models.CharField(max_length=200, null=True, blank=True, choices=MARITUL_STATUS_CHOICES, default='OT')
+    phone_number = models.CharField(
+        max_length=15,
+        null=True,
+        blank=True,
+        validators=[RegexValidator(r'^\+?1?\d{9,15}$', 
+                   "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.")],
+    )
     is_manager = models.BooleanField(default=False)
     is_employee = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = []  # No additional required fields
 
-    objects = UserManager()
+    objects = UserManager()  # Use the custom manager here
 
     class Meta:
         db_table = 'users_user'
@@ -38,12 +48,17 @@ class User(AbstractUser):
         ordering = ["-id"]
 
     def __str__(self):
-        return self.email
+        return f"{self.email} ({self.employe_id})"
+
+    def save(self, *args, **kwargs):
+        if self.email:
+            self.email = self.email.lower()
+        super().save(*args, **kwargs)
 
 class OTP(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    otp = models.IntegerField()
-    created_datetime = models.DateTimeField(auto_now=True)
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'users_otp'
@@ -51,5 +66,6 @@ class OTP(models.Model):
         verbose_name_plural = 'otps'
         ordering = ["-id"]
 
-    def __str__(self):
-        return f'{self.user.email}--{self.otp}'
+  
+    def is_expired(self):
+        return now() > self.created_at + timedelta(minutes=10)  # Expiry time of 10 minutes

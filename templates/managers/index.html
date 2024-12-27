@@ -20,12 +20,28 @@
 					<a href="{% url 'managers:leavelist' %}" class="py-2 px-4 bg-gray-600 hover:bg-gray-800 text-white rounded-lg">View All</a>
 				</div>
 			</div>
-			<div class="text-center mt-7">
-				<a href="{% url 'managers:update_yearly' %}" class="py-3 px-7 text-[18px] bg-gray-600 hover:bg-gray-800 text-white rounded-lg">Update Yearly Leave</a>
+
+			<div class="flex justify-center items-center mt-10 mb-4">
+				<div class="border border-gray-300 rounded-lg  sm:p-6  w-[400px]">
+					<p class="text-center mt-5 text-red-600 font-semibold text-sm sm:text-base md:text-lg lg:text-xl">
+						'Warning': This action is for year-ending updates only!
+					</p>
+					<div class="text-center mt-7">
+						<a href="{% url 'managers:update_yearly' %}" 
+						   class="py-3 px-7 text-[18px] bg-gray-600 hover:bg-gray-800 text-white rounded-lg">
+						   Update Yearly Leave
+						</a>
+					</div>
+					<div class="text-center mt-7">
+						<a href="{% url 'managers:update_march' %}" 
+						   class="py-3 px-7 text-[18px] bg-gray-600 hover:bg-gray-800 text-white rounded-lg">
+						   Update March Leave
+						</a>
+					</div>
+				</div>
 			</div>
-			<div class="text-center mt-7">
-				<a href="{% url 'managers:update_march' %}" class="py-3 px-7 text-[18px] bg-gray-600 hover:bg-gray-800 text-white rounded-lg">Update March Leave</a>
-			</div>
+			
+			
 			<div class="py-7 flex justify-between items-center">
 				<h1 class="text-[28px]"><span class="text-orange-500">{{m_count}}</span> Managers</h1>
 				<a href="{% url 'managers:manager_add' %}"  class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mx-2 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-transform transform hover:scale-105">Add Manager</a>

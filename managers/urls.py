@@ -28,6 +28,9 @@ urlpatterns=[
 
     path('holiday/add/', views.add_holiday, name='add_holiday'),
     path('holiday/delete/<int:id>/', views.delete_holiday, name='delete_holiday'),
-       path('bulk-delete-holidays/', views.bulk_delete_holidays, name='bulk_delete_holidays'),  # Add this line
+    path('bulk-delete-holidays/', views.bulk_delete_holidays, name='bulk_delete_holidays'),  # Add this line
+
+    path('forget-password/', views.manager_forget_password, name='forget_password'),
+    path('reset-password/', views.manager_reset_password, name='reset_password'),
 
 ]

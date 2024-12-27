@@ -16,6 +16,9 @@ urlpatterns=[
 
     path("employe/edit/<int:id>/", views.edit_employe, name="edit_employe"),
 
+    path('forget-password/',views.forget_password, name='forget_password'),
+    path('reset-password/', views.reset_password, name='reset_password'),
+
 
 
 

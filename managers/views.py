@@ -15,6 +15,21 @@ from managers.models import *
 from django.utils import timezone
 from datetime import timedelta
 
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.hashers import make_password
+from django.core.mail import send_mail
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
+from users.models import User
+from users.models import OTP  # Assuming OTP is in the common app
+import random
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.conf import settings
+from django.core.validators import validate_email
+import secrets
+
 @login_required(login_url='/managers/login')
 @allow_manager
 def index(request):
@@ -794,3 +809,76 @@ def bulk_delete_holidays(request):
         messages.success(request, "All holidays deleted successfully!")
         
     return redirect('managers:add_holiday')  # Redirect to the list after bulk deletio
+
+
+User = get_user_model()
+
+def manager_forget_password(request):
+    context = {"title": "Forget Password"}
+    
+    if request.method == "POST":
+        email = request.POST.get("email")
+        
+        try:
+            validate_email(email)
+            user = User.objects.get(email=email)  # Handle custom user models
+            
+            otp = secrets.randbelow(899999) + 100000
+            OTP.objects.create(user=user, otp=otp)
+            
+            send_mail(
+                subject='Password Reset OTP',
+                message=f'Your OTP for resetting the password is {otp}',
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            
+            request.session['reset_user_email'] = email
+            messages.success(request, "If this email is registered, an OTP has been sent.")
+            return HttpResponseRedirect(reverse('managers:reset_password'))
+        
+        except ValidationError:
+            messages.error(request, "Invalid email format.")
+        except User.DoesNotExist:
+            messages.success(request, "If this email is registered, an OTP has been sent.")
+        except Exception as e:
+            messages.error(request, f"An error occurred: {e}")
+    
+    return render(request, "managers/forget_password.html", context)
+
+
+def manager_reset_password(request):
+    context = {"title": "Reset Password"}
+    
+    if request.method == "POST":
+        otp = request.POST.get("otp")
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
+        
+        email = request.session.get('manager_reset_email')
+        try:
+            user = User.objects.get(email=email, is_manager=True)  # Ensure the user is a manager
+            otp_obj = OTP.objects.filter(user=user, otp=otp).first()
+            
+            if not otp_obj:
+                messages.error(request, "Invalid or expired OTP.")
+            elif new_password != confirm_password:
+                messages.error(request, "Passwords do not match.")
+            else:
+                try:
+                    validate_password(new_password, user)
+                except ValidationError as e:
+                    messages.error(request, " ".join(e.messages))
+                    return render(request, "managers/reset_password.html", context)
+
+                # Save the new password
+                user.password = make_password(new_password)
+                user.save()
+                otp_obj.delete()  # Remove OTP after successful reset
+                messages.success(request, "Password reset successfully. Please login.")
+                return redirect('managers:login')  # Redirect to login page
+        except User.DoesNotExist:
+            messages.error(request, "User does not exist.")
+    
+    return render(request, "managers/reset_password.html", context)

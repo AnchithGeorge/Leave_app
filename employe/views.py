@@ -11,6 +11,29 @@ from managers.models import *
 from users.models import *
 
 
+
+from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
+from django.core.mail import send_mail
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.utils.timezone import now
+from datetime import timedelta
+import random
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth import get_user_model
+from django.conf import settings
+
+from django.core.mail import send_mail
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+import secrets
+from django.contrib.auth.hashers import make_password
+
+from users.models import OTP
+
+
 @login_required(login_url='/login')
 @allow_employee
 def details(request):
@@ -240,3 +263,83 @@ def edit_employe(request, id):
     }
 
     return render(request, "employe/edit_employe.html", context=context)
+
+User = get_user_model()
+
+def forget_password(request):
+    context = {"title": "Forget Password"}
+    
+    if request.method == "POST":
+        email = request.POST.get("email")
+        
+        try:
+            validate_email(email)
+            user = User.objects.get(email=email)  # Handle custom user models
+            
+            otp = secrets.randbelow(899999) + 100000
+            OTP.objects.create(user=user, otp=otp)
+            
+            send_mail(
+                subject='Password Reset OTP',
+                message=f'Your OTP for resetting the password is {otp}',
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            
+            request.session['reset_user_email'] = email
+            messages.success(request, "If this email is registered, an OTP has been sent.")
+            return HttpResponseRedirect(reverse('employe:reset_password'))
+        
+        except ValidationError:
+            messages.error(request, "Invalid email format.")
+        except User.DoesNotExist:
+            messages.success(request, "If this email is registered, an OTP has been sent.")
+        except Exception as e:
+            messages.error(request, f"An error occurred: {e}")
+    
+    return render(request, "employe/forget_password.html", context)
+
+
+
+
+
+def reset_password(request):
+    context = {"title": "Reset Password"}
+    
+    if request.method == "POST":
+        otp = request.POST.get("otp")
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
+        
+        email = request.session.get('reset_user_email')
+        try:
+            user = User.objects.get(email=email)
+            otp_obj = OTP.objects.filter(user=user, otp=otp).first()
+            
+            if not otp_obj or otp_obj.is_expired():
+                messages.error(request, "Invalid or expired OTP.")
+            elif new_password != confirm_password:
+                messages.error(request, "Passwords do not match.")
+            else:
+                try:
+                    validate_password(new_password, user)
+                except ValidationError as e:
+                    messages.error(request, " ".join(e.messages))
+                    return render(request, "employe/reset_password.html", context)
+
+                # Save the new password
+                user.password = make_password(new_password)
+                user.save()
+                
+                # Remove the OTP after successful reset
+                otp_obj.delete()
+                messages.success(request, "Password reset successfully. Please login.")
+                
+                # Redirect to login page
+                return HttpResponseRedirect(reverse('employe:login'))
+        
+        except User.DoesNotExist:
+            messages.error(request, "User does not exist.")
+    
+    return render(request, "employe/reset_password.html", context)
