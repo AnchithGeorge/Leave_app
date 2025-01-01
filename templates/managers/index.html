@@ -20,21 +20,25 @@
 					<a href="{% url 'managers:leavelist' %}" class="py-2 px-4 bg-gray-600 hover:bg-gray-800 text-white rounded-lg">View All</a>
 				</div>
 			</div>
-
 			<div class="flex justify-center items-center mt-10 mb-4">
-				<div class="border border-gray-300 rounded-lg  sm:p-6  w-[400px]">
+				<div class="border border-gray-300 rounded-lg p-4 sm:p-6 w-full max-w-[400px]">
+					<!-- Warning Message -->
 					<p class="text-center mt-5 text-red-600 font-semibold text-sm sm:text-base md:text-lg lg:text-xl">
 						'Warning': This action is for year-ending updates only!
 					</p>
+			
+					<!-- Update Yearly Leave Button -->
 					<div class="text-center mt-7">
 						<a href="{% url 'managers:update_yearly' %}" 
-						   class="py-3 px-7 text-[18px] bg-gray-600 hover:bg-gray-800 text-white rounded-lg">
+						   class="py-3 px-7 text-sm sm:text-base md:text-lg bg-gray-600 hover:bg-gray-800 text-white rounded-lg transition-transform transform hover:scale-105">
 						   Update Yearly Leave
 						</a>
 					</div>
+			
+					<!-- Update March Leave Button -->
 					<div class="text-center mt-7">
 						<a href="{% url 'managers:update_march' %}" 
-						   class="py-3 px-7 text-[18px] bg-gray-600 hover:bg-gray-800 text-white rounded-lg">
+						   class="py-3 px-7 text-sm sm:text-base md:text-lg bg-gray-600 hover:bg-gray-800 text-white rounded-lg transition-transform transform hover:scale-105">
 						   Update March Leave
 						</a>
 					</div>
@@ -42,13 +46,29 @@
 			</div>
 			
 			
-			<div class="py-7 flex justify-between items-center">
-				<h1 class="text-[28px]"><span class="text-orange-500">{{m_count}}</span> Managers</h1>
-				<a href="{% url 'managers:manager_add' %}"  class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mx-2 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-transform transform hover:scale-105">Add Manager</a>
-				<a href="{% url 'managers:add_holiday' %}"  class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mx-2 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-transform transform hover:scale-105">Add Holiday</a>
-
-
+			<div class="py-7 flex flex-wrap justify-between items-center space-y-4 sm:space-y-0">
+				<!-- Title -->
+				<h1 class="text-[28px] text-center sm:text-left w-full sm:w-auto">
+					<span class="text-orange-500">{{ m_count }}</span> Managers
+				</h1>
+			
+				<!-- Buttons Container -->
+				<div class="flex flex-wrap justify-center sm:justify-end w-full sm:w-auto gap-2">
+					<!-- Add Manager Button -->
+					<a href="{% url 'managers:manager_add' %}" 
+					   class="flex-1 sm:flex-none bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 transition-transform transform hover:scale-105 text-center">
+					   Add Manager
+					</a>
+			
+					<!-- Add Holiday Button -->
+					<a href="{% url 'managers:add_holiday' %}" 
+					   class="flex-1 sm:flex-none bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 transition-transform transform hover:scale-105 text-center">
+					   Add Holiday
+					</a>
+				</div>
 			</div>
+			
+			
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for employe in managers %}
 					<div class="bg-white col-span-1 p-6 rounded-lg shadow-md relative cursor-pointer focus:ring transform transition-transform duration-300 hover:scale-110">
@@ -89,10 +109,21 @@
 
 	<section class="mt-10">
 		<section class="wrapper">
-			<div class="py-7 flex justify-between items-center">
-				<h1 class="text-[28px]"><span class="text-orange-500">{{e_count}}</span> Employees</h1>
-				<a href=" {% url 'managers:add_employe' %}"  class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mx-2 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-transform transform hover:scale-105">Add Employee</a>
+			<div class="py-7 flex flex-wrap justify-between items-center space-y-4 sm:space-y-0">
+				<!-- Title -->
+				<h1 class="text-[28px] text-center sm:text-left w-full sm:w-auto">
+					<span class="text-orange-500">{{ e_count }}</span> Employees
+				</h1>
+				
+				<!-- Add Employee Button -->
+				<div class="w-full sm:w-auto flex justify-center sm:justify-end">
+					<a href="{% url 'managers:add_employe' %}" 
+					   class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 transition-transform transform hover:scale-105">
+					   Add Employee
+					</a>
+				</div>
 			</div>
+			
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for employe in employes %}
 					<div class="bg-white p-6 col-span-1 rounded-lg shadow-md relative cursor-pointer focus:ring transform transition-transform duration-300 hover:scale-110">
@@ -104,7 +135,6 @@
 							<img src="{{employe.image.url}}" alt="Profile Image" class="w-12 h-12 rounded-full">
 							<div class="ml-4">
 								<h2 class="text-lg font-semibold">{{employe.user.first_name}} {{employe.user.last_name}}</h2>
-								<p class="text-gray-600">{{employe.designation}}</p>
 							</div>
 						</div>
 				

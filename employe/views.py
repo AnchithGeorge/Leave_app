@@ -24,6 +24,8 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
 from django.conf import settings
+import smtplib
+import ssl
 
 from django.core.mail import send_mail
 from django.core.validators import validate_email
@@ -100,37 +102,20 @@ def login(request):
     if request.method == 'POST':
         email = request.POST.get("email")
         password = request.POST.get("password")
-        employe_id = request.POST.get("employe_id")
-
 
         if email and password:
-            user = authenticate(request, email=email, password=password,employe_id=employe_id)
+            user = authenticate(request, email=email, password=password)
             if user is not None:
                 auth_login(request, user)
-
                 return HttpResponseRedirect(reverse("employe:details"))
-            
             else:
-                context ={
-                    "title":"Login",
-                    "error":True,
-                    "message":"invalid credentials"
-                }
-
-            return render(request, "employe/login.html", context=context)
-        else:
-            context ={
-                "title":"Login",
-                "error":True,
-                "message":"invalid credentials"
-            }
-            return render(request, "employe/login.html", context=context)
-            
-    else:
-        context ={
-            "title":"Login",
-        }
-        return render(request, "employe/login.html", context=context)
+                messages.error(request, "Invalid credentials, please check your email and password.")
+                return render(request, "employe/login.html", {"title": "Login"})
+        
+        messages.error(request, "Email and password are required.")
+        return render(request, "employe/login.html", {"title": "Login"})
+    
+    return render(request, "employe/login.html", {"title": "Login"})
 
 
 @login_required(login_url='/login')
@@ -266,42 +251,167 @@ def edit_employe(request, id):
 
 User = get_user_model()
 
-def forget_password(request):
-    context = {"title": "Forget Password"}
+# def forget_password(request):
+#     context = {"title": "Forget Password"}
     
+#     if request.method == "POST":
+#         email = request.POST.get("email")
+        
+#         try:
+#             validate_email(email)
+#             user = User.objects.get(email=email)  # Handle custom user models
+            
+#             otp = secrets.randbelow(899999) + 100000
+#             OTP.objects.create(user=user, otp=otp)
+            
+#             send_mail(
+#                 subject='Password Reset OTP',
+#                 message=f'Your OTP for resetting the password is {otp}',
+#                 from_email=settings.EMAIL_HOST_USER,
+#                 recipient_list=[email],
+#                 fail_silently=False,
+#             )
+            
+#             request.session['reset_user_email'] = email
+#             messages.success(request, "If this email is registered, an OTP has been sent.")
+#             return HttpResponseRedirect(reverse('employe:reset_password'))
+        
+#         except ValidationError:
+#             messages.error(request, "Invalid email format.")
+#         except User.DoesNotExist:
+#             messages.success(request, "If this email is registered, an OTP has been sent.")
+#         except Exception as e:
+#             messages.error(request, f"An error occurred: {e}")
+    
+#     return render(request, "employe/forget_password.html", context)
+
+
+
+
+
+# def reset_password(request):
+#     context = {"title": "Reset Password"}
+    
+#     if request.method == "POST":
+#         otp = request.POST.get("otp")
+#         new_password = request.POST.get("new_password")
+#         confirm_password = request.POST.get("confirm_password")
+        
+#         email = request.session.get('reset_user_email')
+#         try:
+#             user = User.objects.get(email=email)
+#             otp_obj = OTP.objects.filter(user=user, otp=otp).first()
+            
+#             if not otp_obj or otp_obj.is_expired():
+#                 messages.error(request, "Invalid or expired OTP.")
+#             elif new_password != confirm_password:
+#                 messages.error(request, "Passwords do not match.")
+#             else:
+#                 try:
+#                     validate_password(new_password, user)
+#                 except ValidationError as e:
+#                     messages.error(request, " ".join(e.messages))
+#                     return render(request, "employe/reset_password.html", context)
+
+#                 # Save the new password
+#                 user.password = make_password(new_password)
+#                 user.save()
+                
+#                 # Remove the OTP after successful reset
+#                 otp_obj.delete()
+#                 messages.success(request, "Password reset successfully. Please login.")
+                
+#                 # Redirect to login page
+#                 return HttpResponseRedirect(reverse('employe:login'))
+        
+#         except User.DoesNotExist:
+#             messages.error(request, "User does not exist.")
+    
+#     return render(request, "employe/reset_password.html", context)
+
+
+# def forget_password(request):
+    
+#     if request.method == "POST":
+#         email = request.POST.get("email")
+
+#         if User.objects.filter(email=email).exists():
+
+#             user = User.objects.get(email=email)
+            
+#             otp = secrets.randbelow(899999) + 100000
+#             OTP.objects.create(user=user, otp=otp)
+            
+#             context = ssl._create_unverified_context()
+#             with smtplib.SMTP('smtp.gmail.com', 587) as server:
+#                 server.starttls(context=context)
+#                 server.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
+#                 send_mail(
+#                     'Reset Password OTP',
+#                     f'Your OTP for resetting the password is {otp}',
+#                     settings.EMAIL_HOST_USER,
+#                     [email],
+#                     fail_silently=False,
+#                 )
+        
+#             return HttpResponseRedirect(reverse('employe:reset_password'))
+#         else:
+#             context = {
+#                 "title": "Forget Password",
+#                 "message": "Invalid email address"
+#             }
+#         return render(request, "employe/forget_password.html", context)
+    
+#     context = {
+#         "title": "Forget Password",
+#     }
+
+            
+#     return render(request, "employe/forget_password.html", context)
+
+def forget_password(request):
     if request.method == "POST":
         email = request.POST.get("email")
         
-        try:
-            validate_email(email)
-            user = User.objects.get(email=email)  # Handle custom user models
+        if User.objects.filter(email=email).exists():
+            user = User.objects.get(email=email)
             
+            # Generate OTP
             otp = secrets.randbelow(899999) + 100000
-            OTP.objects.create(user=user, otp=otp)
+            expires_at = timezone.now() + timedelta(minutes=10)  # Set OTP expiration time (10 minutes)
             
-            send_mail(
-                subject='Password Reset OTP',
-                message=f'Your OTP for resetting the password is {otp}',
-                from_email=settings.EMAIL_HOST_USER,
-                recipient_list=[email],
-                fail_silently=False,
-            )
+            # Create OTP with expiration time
+            OTP.objects.create(user=user, otp=otp, expires_at=expires_at)
             
+            # Save email in session
             request.session['reset_user_email'] = email
-            messages.success(request, "If this email is registered, an OTP has been sent.")
-            return HttpResponseRedirect(reverse('employe:reset_password'))
+            
+            # Send OTP via email
+            try:
+                send_mail(
+                    'Reset Password OTP',
+                    f'Your OTP for resetting the password is {otp}',
+                    settings.EMAIL_HOST_USER,
+                    [email],
+                    fail_silently=False,
+                )
+                return HttpResponseRedirect(reverse('employe:reset_password'))
+            except Exception as e:
+                context = {
+                    "title": "Forget Password",
+                    "message": f"Failed to send OTP. Error: {str(e)}",
+                }
+                return render(request, "employe/forget_password.html", context)
         
-        except ValidationError:
-            messages.error(request, "Invalid email format.")
-        except User.DoesNotExist:
-            messages.success(request, "If this email is registered, an OTP has been sent.")
-        except Exception as e:
-            messages.error(request, f"An error occurred: {e}")
+        else:
+            context = {
+                "title": "Forget Password",
+                "message": "Invalid email address",
+            }
+            return render(request, "employe/forget_password.html", context)
     
+    context = {"title": "Forget Password"}
     return render(request, "employe/forget_password.html", context)
-
-
-
 
 
 def reset_password(request):
@@ -312,34 +422,51 @@ def reset_password(request):
         new_password = request.POST.get("new_password")
         confirm_password = request.POST.get("confirm_password")
         
+        # Retrieve email from session
         email = request.session.get('reset_user_email')
+        if not email:
+            messages.error(request, "Session expired. Please restart the password reset process.")
+            return redirect('employe:forget_password')
+        
         try:
+            # Get the user based on the email
             user = User.objects.get(email=email)
-            otp_obj = OTP.objects.filter(user=user, otp=otp).first()
             
-            if not otp_obj or otp_obj.is_expired():
-                messages.error(request, "Invalid or expired OTP.")
-            elif new_password != confirm_password:
-                messages.error(request, "Passwords do not match.")
-            else:
-                try:
-                    validate_password(new_password, user)
-                except ValidationError as e:
-                    messages.error(request, " ".join(e.messages))
-                    return render(request, "employe/reset_password.html", context)
+            # Retrieve and validate the OTP
+            otp_obj = OTP.objects.filter(user=user, otp=otp).first()
+            if not otp_obj:
+                messages.error(request, "Invalid OTP.")
+                return render(request, "employe/reset_password.html", context)
 
-                # Save the new password
-                user.password = make_password(new_password)
-                user.save()
-                
-                # Remove the OTP after successful reset
-                otp_obj.delete()
-                messages.success(request, "Password reset successfully. Please login.")
-                
-                # Redirect to login page
-                return HttpResponseRedirect(reverse('employe:login'))
+            if otp_obj.is_expired():
+                messages.error(request, "OTP has expired.")
+                return render(request, "employe/reset_password.html", context)
+            
+            # Check if passwords match
+            if new_password != confirm_password:
+                messages.error(request, "Passwords do not match.")
+                return render(request, "employe/reset_password.html", context)
+            
+            # Validate new password
+            try:
+                validate_password(new_password, user)
+            except ValidationError as e:
+                messages.error(request, " ".join(e.messages))
+                return render(request, "employe/reset_password.html", context)
+            
+            # Set and save the new password
+            user.set_password(new_password)
+            user.save()
+            
+            # Delete the OTP after successful password reset
+            otp_obj.delete()
+            
+            messages.success(request, "Password reset successfully. Please login.")
+            return redirect('employe:login')
         
         except User.DoesNotExist:
-            messages.error(request, "User does not exist.")
+            messages.error(request, "User not found.")
+            return redirect('employe:forget_password')
+            
     
     return render(request, "employe/reset_password.html", context)

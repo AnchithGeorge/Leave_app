@@ -6,6 +6,7 @@ from django.core.validators import RegexValidator
 
 from django.utils.timezone import now
 from datetime import timedelta
+from django.utils import timezone
 
 GENDER_CHOICES = (
     ('M', 'Male'),
@@ -55,17 +56,22 @@ class User(AbstractUser):
             self.email = self.email.lower()
         super().save(*args, **kwargs)
 
+
 class OTP(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     otp = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
 
     class Meta:
         db_table = 'users_otp'
-        verbose_name = 'otp'
-        verbose_name_plural = 'otps'
+        verbose_name = 'OTP'
+        verbose_name_plural = 'OTPs'
         ordering = ["-id"]
 
-  
     def is_expired(self):
-        return now() > self.created_at + timedelta(minutes=10)  # Expiry time of 10 minutes
+        """Check if the OTP has expired (assuming expiration time is 10 minutes)."""
+        return self.expires_at < timezone.now()
+
+    def __str__(self):
+        return f"OTP for {self.user.email}"

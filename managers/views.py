@@ -6,6 +6,8 @@ from django.http.response import HttpResponseRedirect
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 import traceback
+from datetime import datetime, timedelta
+import re
 
 from common.decorators import allow_manager
 from employe.models import *
@@ -14,6 +16,8 @@ from managers.models import *
 
 from django.utils import timezone
 from datetime import timedelta
+import smtplib
+import ssl
 
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -52,7 +56,6 @@ def index(request):
     return render(request, "managers/index.html", context=context)
 
 
-
 def login(request):
     context = {"title": "Login"}
     
@@ -62,33 +65,38 @@ def login(request):
 
         if email and password:
             user = authenticate(request, email=email, password=password)
-            if user and user.is_superuser:
-                auth_login(request, user)
-                user.is_manager = True
-                user.save()
-                manager, created = Manager.objects.get_or_create(user=user)
+            
+            if user:
+                if user.is_superuser:
+                    auth_login(request, user)
+                    user.is_manager = True
+                    user.save()
+                    manager, created = Manager.objects.get_or_create(user=user)
 
-                # Create or get related manager models
-                related_models = [
-                    EmergencyContactManager,
-                    AddressManager,
-                    BackgroundManager,
-                    BenefitsManager,
-                    IdentificationManager,
-                    WorkScheduleManager 
-                ]
+                    # Create or get related manager models
+                    related_models = [
+                        EmergencyContactManager,
+                        AddressManager,
+                        BackgroundManager,
+                        BenefitsManager,
+                        IdentificationManager,
+                        WorkScheduleManager 
+                    ]
 
-                for model in related_models:
-                    model.objects.get_or_create(manager=manager)
+                    for model in related_models:
+                        model.objects.get_or_create(manager=manager)
 
-                return HttpResponseRedirect(reverse("managers:index"))
-
+                    return HttpResponseRedirect(reverse("managers:index"))
+                else:
+                    # If user is not a superuser, handle this error
+                    messages.error(request, "Access restricted")
             else:
-                context.update({"error": True, "message": "Invalid credentials"})
+                # If authentication failed (wrong password or email)
+                messages.error(request, "Invalid email or password")
         else:
-            context.update({"error": True, "message": "Invalid credentials"})
+            messages.error(request, "Email and password are required")
 
-    return render(request, "managers/login.html", context=context)
+    return render(request, "managers/login.html", context)
 
 
 def logout(request):
@@ -811,74 +819,187 @@ def bulk_delete_holidays(request):
     return redirect('managers:add_holiday')  # Redirect to the list after bulk deletio
 
 
-User = get_user_model()
+# User = get_user_model()
+
+# def manager_forget_password(request):
+#     context = {"title": "Forget Password"}
+    
+#     if request.method == "POST":
+#         email = request.POST.get("email")
+        
+#         try:
+#             validate_email(email)
+#             user = User.objects.get(email=email)  # Handle custom user models
+            
+#             otp = secrets.randbelow(899999) + 100000
+#             OTP.objects.create(user=user, otp=otp)
+            
+#             send_mail(
+#                 subject='Password Reset OTP',
+#                 message=f'Your OTP for resetting the password is {otp}',
+#                 from_email=settings.EMAIL_HOST_USER,
+#                 recipient_list=[email],
+#                 fail_silently=False,
+#             )
+            
+#             request.session['reset_user_email'] = email
+#             messages.success(request, "If this email is registered, an OTP has been sent.")
+#             return HttpResponseRedirect(reverse('managers:reset_password'))
+        
+#         except ValidationError:
+#             messages.error(request, "Invalid email format.")
+#         except User.DoesNotExist:
+#             messages.success(request, "If this email is registered, an OTP has been sent.")
+#         except Exception as e:
+#             messages.error(request, f"An error occurred: {e}")
+    
+#     return render(request, "managers/forget_password.html", context)
+
+
+# def manager_reset_password(request):
+#     context = {"title": "Reset Password"}
+    
+#     if request.method == "POST":
+#         otp = request.POST.get("otp")
+#         new_password = request.POST.get("new_password")
+#         confirm_password = request.POST.get("confirm_password")
+        
+#         email = request.session.get('manager_reset_email')
+#         try:
+#             user = User.objects.get(email=email, is_manager=True)  # Ensure the user is a manager
+#             otp_obj = OTP.objects.filter(user=user, otp=otp).first()
+            
+#             if not otp_obj:
+#                 messages.error(request, "Invalid or expired OTP.")
+#             elif new_password != confirm_password:
+#                 messages.error(request, "Passwords do not match.")
+#             else:
+#                 try:
+#                     validate_password(new_password, user)
+#                 except ValidationError as e:
+#                     messages.error(request, " ".join(e.messages))
+#                     return render(request, "managers/reset_password.html", context)
+
+#                 # Save the new password
+#                 user.password = make_password(new_password)
+#                 user.save()
+#                 otp_obj.delete()  # Remove OTP after successful reset
+#                 messages.success(request, "Password reset successfully. Please login.")
+#                 return redirect('managers:login')  # Redirect to login page
+#         except User.DoesNotExist:
+#             messages.error(request, "User does not exist.")
+    
+#     return render(request, "managers/reset_password.html", context)
+
 
 def manager_forget_password(request):
-    context = {"title": "Forget Password"}
-    
     if request.method == "POST":
         email = request.POST.get("email")
-        
+
+        # Validate email format
+        if not email or not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            context = {
+                "title": "Forget Password",
+                "message": "Invalid email format"
+            }
+            return render(request, "managers/forget_password.html", context)
+
+        # Check if the email exists in the database
         try:
-            validate_email(email)
-            user = User.objects.get(email=email)  # Handle custom user models
-            
-            otp = secrets.randbelow(899999) + 100000
-            OTP.objects.create(user=user, otp=otp)
-            
-            send_mail(
-                subject='Password Reset OTP',
-                message=f'Your OTP for resetting the password is {otp}',
-                from_email=settings.EMAIL_HOST_USER,
-                recipient_list=[email],
-                fail_silently=False,
-            )
-            
-            request.session['reset_user_email'] = email
-            messages.success(request, "If this email is registered, an OTP has been sent.")
-            return HttpResponseRedirect(reverse('managers:reset_password'))
-        
-        except ValidationError:
-            messages.error(request, "Invalid email format.")
+            user = User.objects.get(email=email)
         except User.DoesNotExist:
-            messages.success(request, "If this email is registered, an OTP has been sent.")
-        except Exception as e:
-            messages.error(request, f"An error occurred: {e}")
-    
+            context = {
+                "title": "Forget Password",
+                "message": "Email not found in our records. Please try again."
+            }
+            return render(request, "managers/forget_password.html", context)
+
+        # Generate OTP (6 digits)
+        otp = secrets.randbelow(899999) + 100000
+
+        # Set OTP expiration time (e.g., 10 minutes from now)
+        otp_expiry_time = timezone.now() + timedelta(minutes=10)
+
+        # Create OTP entry in the database with an expiration time
+        OTP.objects.create(user=user, otp=otp, expires_at=otp_expiry_time)
+
+        # Send OTP via email (same as before)
+        try:
+            context = ssl._create_unverified_context()
+            with smtplib.SMTP('smtp.gmail.com', 587) as server:
+                server.starttls(context=context)
+                server.login(settings.EMAIL_HOST_USER, settings.EMAIL_HOST_PASSWORD)
+                send_mail(
+                    'Reset Password OTP',
+                    f'Your OTP for resetting the password is {otp}. It will expire in 10 minutes.',
+                    settings.EMAIL_HOST_USER,
+                    [email],
+                    fail_silently=False,
+                )
+            
+            # Store the email in session for later use
+            request.session['reset_user_email'] = email
+
+            # Redirect to reset password page
+            return HttpResponseRedirect(reverse('managers:reset_password'))
+
+        except smtplib.SMTPException as e:
+            messages.error(request, "Error sending OTP email. Please try again later.")
+            return render(request, "managers/forget_password.html", {"title": "Forget Password"})
+
+    # If the request method is GET, show the form
+    context = {
+        "title": "Forget Password",
+    }
     return render(request, "managers/forget_password.html", context)
+
 
 
 def manager_reset_password(request):
     context = {"title": "Reset Password"}
-    
+
+    # Retrieve the email from session
+    email = request.session.get('reset_user_email')
+
+    if not email:
+        messages.error(request, "Session expired. Please restart the password reset process.")
+        return redirect('managers:forget_password')
+
     if request.method == "POST":
         otp = request.POST.get("otp")
         new_password = request.POST.get("new_password")
         confirm_password = request.POST.get("confirm_password")
-        
-        email = request.session.get('manager_reset_email')
+
         try:
-            user = User.objects.get(email=email, is_manager=True)  # Ensure the user is a manager
+            # Retrieve user by email
+            user = get_user_model().objects.get(email=email)
             otp_obj = OTP.objects.filter(user=user, otp=otp).first()
-            
-            if not otp_obj:
+
+            # Validate OTP
+            if not otp_obj or otp_obj.is_expired():
                 messages.error(request, "Invalid or expired OTP.")
             elif new_password != confirm_password:
                 messages.error(request, "Passwords do not match.")
             else:
                 try:
+                    # Validate password strength (optional)
                     validate_password(new_password, user)
                 except ValidationError as e:
                     messages.error(request, " ".join(e.messages))
                     return render(request, "managers/reset_password.html", context)
 
                 # Save the new password
-                user.password = make_password(new_password)
+                user.set_password(new_password)
                 user.save()
-                otp_obj.delete()  # Remove OTP after successful reset
+
+                # Remove OTP after successful reset
+                otp_obj.delete()
                 messages.success(request, "Password reset successfully. Please login.")
-                return redirect('managers:login')  # Redirect to login page
-        except User.DoesNotExist:
+
+                # Redirect to login page
+                return HttpResponseRedirect(reverse('managers:login'))
+
+        except get_user_model().DoesNotExist:
             messages.error(request, "User does not exist.")
-    
+
     return render(request, "managers/reset_password.html", context)
