@@ -163,7 +163,7 @@ def manager_add(request):
         # Check if the user with the provided email already exists
         if User.objects.filter(email=email).exists():
             messages.error(request, "A user with this email already exists.")
-            return render(request, "managers/add_employe.html", context)
+            return render(request, "managers/manager_add.html", context)
 
         try:
             # Print the extracted data to debug
@@ -203,7 +203,7 @@ def manager_add(request):
             for model in related_models:
                 model.objects.get_or_create(manager=manager)
 
-            messages.success(request, "Employee added successfully.")
+            messages.success(request, "Manager added successfully.")
             return redirect(reverse("managers:index"))
 
         except Exception as e:
@@ -212,10 +212,10 @@ def manager_add(request):
             print(f"Error occurred: {error_trace}")
             # Display the error message to the user
             messages.error(request, f"An error occurred: {error_trace}")
-            return render(request, "managers/add_employe.html", context)
+            return render(request, "managers/manager_add.html", context)
 
     # GET request: simply render the form with the empty context
-    return render(request, "managers/add_employe.html", context)
+    return render(request, "managers/manager_add.html", context)
 
 
 
